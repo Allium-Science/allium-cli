@@ -38,6 +38,8 @@ allium = "cli.main:main"
 dev = [
     "ruff>=0.5.0",
     "pytest>=8.0",
+    "pre-commit>=4.0",
+    "commitizen>=4.0",
 ]
 
 [build-system]
@@ -54,6 +56,12 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+version_files = ["pyproject.toml:^version"]
+tag_format = "cli.prod.v$version"
 
 [tool.pyright]
 pythonVersion = "3.12"
