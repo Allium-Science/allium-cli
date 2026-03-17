@@ -15,17 +15,16 @@ def make_signer(profile: X402KeyProfile) -> tuple[str, Callable[[dict[str, Any]]
     address: str = account.address
 
     def sign(typed_data: dict[str, Any]) -> str:
-        domain = typed_data["domain"]
-        msg = typed_data["message"]
-        primary = typed_data.get("primary_type", typed_data.get("primaryType"))
-        types = {k: v for k, v in typed_data["types"].items() if k != "EIP712Domain"}
-        signable = encode_typed_data(
-            primaryType=primary,
-            domain_data=domain,
-            types=types,
-            message=msg,
-        )
+        full_message = {
+            "types": typed_data["types"],
+            "primaryType": typed_data.get(
+                "primary_type", typed_data.get("primaryType")
+            ),
+            "domain": typed_data["domain"],
+            "message": typed_data["message"],
+        }
+        signable = encode_typed_data(full_message=full_message)
         signed = account.sign_message(signable)
-        return signed.signature.hex()
+        return f"0x{signed.signature.hex()}"
 
     return address, sign
