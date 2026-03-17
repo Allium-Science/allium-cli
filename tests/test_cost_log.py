@@ -54,7 +54,7 @@ class TestLogAndRead:
             log.log_payment(
                 method="tempo",
                 endpoint=f"/api/v1/test/{i}",
-                network="42431",
+                network="4217",
                 raw_amount=str(100000 * (i + 1)),
                 token="tempo",
                 wallet="tempo-account",
@@ -103,7 +103,7 @@ class TestTotalCost:
         log.log_payment(
             method="tempo",
             endpoint="/c",
-            network="42431",
+            network="4217",
             raw_amount="500000",
             token="tempo",
             wallet="tempo",
@@ -112,7 +112,7 @@ class TestTotalCost:
         totals = log.total()
         assert totals["x402:eip155:8453"]["calls"] == 2
         assert totals["x402:eip155:8453"]["amount"] == Decimal("3.000000")
-        assert totals["tempo:42431"]["calls"] == 1
+        assert totals["tempo:4217"]["calls"] == 1
 
     def test_empty_log(self, log):
         assert log.total() == {}

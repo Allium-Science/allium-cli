@@ -32,7 +32,7 @@ allium auth setup --method x402_key --private-key 0x... --network eip155:8453
 allium auth setup --method x402_privy \
     --privy-app-id ... --privy-app-secret ... \
     --privy-wallet-id ... --network eip155:8453
-allium auth setup --method tempo --private-key 0x... --chain-id 42431
+allium auth setup --method tempo --private-key 0x... --chain-id 4217
 ```
 
 | Method | Description |
@@ -227,7 +227,7 @@ allium auth setup
 
 # Non-interactive setup (for scripts/CI)
 allium auth setup --method api_key --api-key sk-...
-allium auth setup --method tempo --private-key 0x... --chain-id 42431
+allium auth setup --method tempo --private-key 0x... --chain-id 4217
 
 # List all configured profiles
 allium auth list

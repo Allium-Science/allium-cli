@@ -93,7 +93,7 @@ class TestProfileCRUD:
         mgr.add_profile("key", ApiKeyProfile(api_key="sk-1"))
         mgr.add_profile(
             "tempo",
-            TempoProfile(private_key="0xabc", chain_id=TempoChainId.TESTNET),
+            TempoProfile(private_key="0xabc", chain_id=TempoChainId.MAINNET),
         )
         profiles = mgr.list_profiles()
         assert isinstance(profiles["key"], ApiKeyProfile)

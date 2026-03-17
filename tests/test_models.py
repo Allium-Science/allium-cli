@@ -31,9 +31,9 @@ class TestProfileDiscriminatedUnion:
         assert p.target_network == TargetNetwork.BASE_MAINNET
 
     def test_tempo_roundtrip(self):
-        p = TempoProfile(private_key="0xabc", chain_id=TempoChainId.TESTNET)
+        p = TempoProfile(private_key="0xabc", chain_id=TempoChainId.MAINNET)
         assert p.method == "tempo"
-        assert p.chain_id == TempoChainId.TESTNET
+        assert p.chain_id == TempoChainId.MAINNET
 
     def test_discriminated_union_from_dict(self):
         config = AlliumConfig.model_validate(
@@ -91,11 +91,9 @@ class TestEnums:
 
     def test_target_network_label(self):
         assert TargetNetwork.BASE_MAINNET.label == "Base Mainnet"
-        assert TargetNetwork.BASE_SEPOLIA.label == "Base Sepolia (Testnet)"
 
     def test_tempo_chain_id_label(self):
         assert TempoChainId.MAINNET.label == "Tempo Mainnet"
-        assert TempoChainId.TESTNET.label == "Tempo Testnet"
 
 
 class TestGetTempoConfig:
@@ -114,28 +112,13 @@ class TestGetTempoConfig:
         assert chain_id == 4217
         assert rpc_url == CHAIN_RPC_URLS[4217]
 
-    def test_testnet_resolves_rpc_url(self):
-        from unittest.mock import patch
-
-        from mpp.methods.tempo._defaults import CHAIN_RPC_URLS
-
-        from cli.auth.tempo import TempoAccount, _get_tempo_config
-
-        profile = TempoProfile(
-            private_key="0x" + "ab" * 32, chain_id=TempoChainId.TESTNET
-        )
-        with patch.object(TempoAccount, "from_key", return_value=None):
-            _, rpc_url, chain_id = _get_tempo_config(profile)
-        assert chain_id == 42431
-        assert rpc_url == CHAIN_RPC_URLS[42431]
-
     def test_unsupported_chain_id_raises(self):
         from unittest.mock import patch
 
         from cli.auth.tempo import _get_tempo_config
 
         profile = TempoProfile(
-            private_key="0x" + "ab" * 32, chain_id=TempoChainId.TESTNET
+            private_key="0x" + "ab" * 32, chain_id=TempoChainId.MAINNET
         )
         with patch.object(profile, "chain_id", "99999"):
             with pytest.raises(ValueError, match="Unsupported Tempo chain ID: 99999"):

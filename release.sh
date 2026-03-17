@@ -13,6 +13,6 @@ fi
 
 git pull origin main --ff-only
 
-cz bump
+uv run cz bump
 
 git push origin main --tags

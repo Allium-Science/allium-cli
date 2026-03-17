@@ -12,7 +12,6 @@ class AuthMethod(StrEnum):
 
 class TargetNetwork(StrEnum):
     BASE_MAINNET = "eip155:8453"
-    BASE_SEPOLIA = "eip155:84532"
 
     @property
     def label(self) -> str:
@@ -21,13 +20,11 @@ class TargetNetwork(StrEnum):
 
 _NETWORK_LABELS: dict[TargetNetwork, str] = {
     TargetNetwork.BASE_MAINNET: "Base Mainnet",
-    TargetNetwork.BASE_SEPOLIA: "Base Sepolia (Testnet)",
 }
 
 
 class TempoChainId(StrEnum):
     MAINNET = "4217"
-    TESTNET = "42431"
 
     @property
     def label(self) -> str:
@@ -36,7 +33,6 @@ class TempoChainId(StrEnum):
 
 _TEMPO_LABELS: dict[TempoChainId, str] = {
     TempoChainId.MAINNET: "Tempo Mainnet",
-    TempoChainId.TESTNET: "Tempo Testnet",
 }
 
 
