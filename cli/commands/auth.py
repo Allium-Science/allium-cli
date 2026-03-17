@@ -220,7 +220,7 @@ def _build_profile_from_args(
 @click.option(
     "--chain-id",
     default=None,
-    help="Tempo chain ID, e.g. 42431 (for tempo).",
+    help="Tempo chain ID, e.g. 4217 (for tempo).",
 )
 @click.option("--privy-app-id", default=None, help="Privy App ID (for x402_privy).")
 @click.option(
@@ -253,7 +253,7 @@ def auth_setup(
     \b
       allium auth setup
       allium auth setup --method api_key --api-key sk-...
-      allium auth setup --method tempo --private-key 0x... --chain-id 42431
+      allium auth setup --method tempo --private-key 0x... --chain-id 4217
     """
     if method:
         profile = _build_profile_from_args(

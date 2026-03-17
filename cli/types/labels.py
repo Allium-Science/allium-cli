@@ -2,9 +2,7 @@ from __future__ import annotations
 
 ALL_NETWORK_LABELS: dict[str, str] = {
     "eip155:8453": "Base Mainnet",
-    "eip155:84532": "Base Sepolia (Testnet)",
     "4217": "Tempo Mainnet",
-    "42431": "Tempo Testnet",
 }
 
 METHOD_LABELS: dict[str, str] = {
