@@ -8,9 +8,7 @@ import httpx
 from mpp import Challenge
 from mpp.client.transport import PaymentTransport
 from mpp.methods.tempo import ChargeIntent, TempoAccount, tempo
-from mpp.methods.tempo._defaults import CHAIN_ID as MAINNET_CHAIN_ID
-from mpp.methods.tempo._defaults import RPC_URL as MAINNET_RPC_URL
-from mpp.methods.tempo._defaults import TESTNET_RPC_URL
+from mpp.methods.tempo._defaults import CHAIN_RPC_URLS
 
 from cli.types.profiles import TempoProfile
 
@@ -69,8 +67,12 @@ class TempoResult:
 
 def _get_tempo_config(profile: TempoProfile) -> tuple[TempoAccount, str, int]:
     chain_id = int(profile.chain_id)
-    is_mainnet = chain_id == MAINNET_CHAIN_ID
-    rpc_url = MAINNET_RPC_URL if is_mainnet else TESTNET_RPC_URL
+    rpc_url = CHAIN_RPC_URLS.get(chain_id)
+    if rpc_url is None:
+        supported = ", ".join(str(cid) for cid in sorted(CHAIN_RPC_URLS))
+        raise ValueError(
+            f"Unsupported Tempo chain ID: {chain_id}. Supported chain IDs: {supported}"
+        )
     account = TempoAccount.from_key(profile.private_key)
     return account, rpc_url, chain_id
 
