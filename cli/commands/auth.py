@@ -4,6 +4,7 @@ import sys
 
 import questionary
 import rich_click as click
+from privy import PrivyAPI
 from questionary import Choice, Separator
 
 from cli.constants.config import EXIT_AUTH
@@ -61,9 +62,44 @@ def _prompt_x402_privy() -> X402PrivyProfile:
     app_secret = _ask(
         questionary.password("Privy App Secret:", style=PROMPT_STYLE, qmark="●")
     )
-    wallet_id = _ask(
-        questionary.text("Privy Wallet ID:", style=PROMPT_STYLE, qmark="●")
-    )
+
+    try:
+        privy = PrivyAPI(app_id=app_id, app_secret=app_secret)
+        wallets = list(privy.wallets.list(chain_type="ethereum"))
+    except Exception as exc:
+        err_console.print(f"\n  [red]Failed to fetch Privy wallets: {exc}[/red]\n")
+        sys.exit(EXIT_AUTH)
+
+    if not wallets:
+        err_console.print(
+            "\n  [red]No EVM wallets found in this Privy app.[/red]\n"
+            "  Create a wallet at [link]https://dashboard.privy.io[/link] first.\n"
+        )
+        sys.exit(EXIT_AUTH)
+
+    def _wallet_label(w) -> str:
+        addr = w.address
+        short_addr = f"{addr[:6]}...{addr[-4:]}"
+        short_id = f"{w.id[:8]}..."
+        return f"{short_addr}  ({short_id})"
+
+    if len(wallets) == 1:
+        wallet_id = wallets[0].id
+        err_console.print(
+            f"  [dim]Wallet:[/dim] {_wallet_label(wallets[0])} (auto-selected)\n"
+        )
+    else:
+        wallet_id = _ask(
+            questionary.select(
+                "Wallet:",
+                choices=[Choice(_wallet_label(w), value=w.id) for w in wallets],
+                style=PROMPT_STYLE,
+                qmark="●",
+                pointer="›",
+                instruction="(↑↓ to select)",
+            )
+        )
+
     network = _ask(
         questionary.select(
             "Network:",
