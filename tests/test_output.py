@@ -5,8 +5,6 @@ import json
 import sys
 from unittest.mock import patch
 
-import pytest
-
 from cli.types.enums import OutputFormat
 from cli.utils.output import OutputRenderer, _flatten_rows
 

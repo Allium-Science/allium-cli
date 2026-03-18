@@ -67,10 +67,14 @@ class OutputRenderer:
         writer = csv.DictWriter(sys.stdout, fieldnames=columns)
         writer.writeheader()
         for row in rows:
-            writer.writerow({
-                k: json.dumps(v, default=str) if isinstance(v, (dict, list)) else str(v)
-                for k, v in row.items()
-            })
+            writer.writerow(
+                {
+                    k: json.dumps(v, default=str)
+                    if isinstance(v, (dict, list))
+                    else str(v)
+                    for k, v in row.items()
+                }
+            )
 
 
 def _flatten_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
