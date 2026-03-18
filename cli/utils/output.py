@@ -40,6 +40,7 @@ class OutputRenderer:
             self._console.print_json(json.dumps(data, default=str))
             return
 
+        rows = _flatten_rows(rows)
         columns = list(rows[0].keys())
         numeric_cols = _detect_numeric_columns(rows, columns)
 
@@ -61,11 +62,34 @@ class OutputRenderer:
             )
             sys.exit(EXIT_ERROR)
 
+        rows = _flatten_rows(rows)
         columns = list(rows[0].keys())
         writer = csv.DictWriter(sys.stdout, fieldnames=columns)
         writer.writeheader()
         for row in rows:
-            writer.writerow({k: str(v) for k, v in row.items()})
+            writer.writerow({
+                k: json.dumps(v, default=str) if isinstance(v, (dict, list)) else str(v)
+                for k, v in row.items()
+            })
+
+
+def _flatten_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Flatten nested dicts into dot-notation columns (one level deep)."""
+    if not rows:
+        return rows
+    flat: list[dict[str, Any]] = []
+    for row in rows:
+        new_row: dict[str, Any] = {}
+        for key, value in row.items():
+            if isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    new_row[f"{key}.{sub_key}"] = sub_value
+            elif isinstance(value, list):
+                new_row[key] = json.dumps(value, default=str)
+            else:
+                new_row[key] = value
+        flat.append(new_row)
+    return flat
 
 
 def _extract_rows(data: Any) -> list[dict[str, Any]]:
