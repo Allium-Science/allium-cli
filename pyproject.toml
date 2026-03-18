@@ -1,6 +1,6 @@
 [project]
 name = "allium-cli"
-version = "0.3.0"
+version = "0.3.1"
 description = "CLI for Allium blockchain data APIs"
 readme = "README.md"
 license = "MIT"
@@ -61,7 +61,7 @@ select = ["E", "F", "I", "UP"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.3.0"
+version = "0.3.1"
 version_files = ["pyproject.toml:^version"]
 tag_format = "cli.prod.v$version"
 
