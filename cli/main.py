@@ -31,7 +31,7 @@ click.rich_click.COMMAND_GROUPS = {
     ],
 }
 
-_GLOBAL_FLAGS = {"-v", "--verbose"}
+_GLOBAL_FLAGS = {"-v", "--verbose", "-q", "--quiet"}
 _GLOBAL_OPTIONS = {"--profile", "--format"}
 
 
@@ -83,14 +83,26 @@ _HELP = (
     default=False,
     help="Show progress details (run IDs, spinners, status messages).",
 )
+@click.option(
+    "--quiet",
+    "-q",
+    is_flag=True,
+    default=False,
+    help="Suppress non-essential output (update notices, progress info).",
+)
 @click.pass_context
 def cli(
-    ctx: click.Context, profile: str | None, output_format: str, verbose: bool
+    ctx: click.Context,
+    profile: str | None,
+    output_format: str,
+    verbose: bool,
+    quiet: bool,
 ) -> None:
     ctx.obj = CliContext(
         profile_override=profile,
         output_format=OutputFormat(output_format),
         verbose=verbose,
+        quiet=quiet,
     )
 
 
@@ -100,7 +112,8 @@ register_commands(cli)
 def main() -> None:
     """entry point; hoists global options then invokes click."""
     sys.argv[1:] = _hoist_global_options(sys.argv[1:])
-    check_for_updates()
+    if "-q" not in sys.argv and "--quiet" not in sys.argv:
+        check_for_updates()
     cli()
 
 

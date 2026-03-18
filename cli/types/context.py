@@ -12,3 +12,4 @@ class CliContext:
     profile_override: str | None = None
     output_format: OutputFormat = field(default=OutputFormat.JSON)
     verbose: bool = False
+    quiet: bool = False
