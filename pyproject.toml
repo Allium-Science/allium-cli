@@ -24,7 +24,7 @@ dependencies = [
     "tomli-w>=1.0",
     "eth-account~=0.13",
     "privy-client~=0.5",
-    "pympp[tempo]==0.3",
+    "pympp[tempo]==0.4.1",
     "rich-click>=1.9.7",
 ]
 

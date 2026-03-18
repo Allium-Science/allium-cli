@@ -111,7 +111,7 @@ wheels = [
 
 [[package]]
 name = "allium-cli"
-version = "0.2.1"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -141,7 +141,7 @@ requires-dist = [
     { name = "httpx", specifier = "~=0.27" },
     { name = "privy-client", specifier = "~=0.5" },
     { name = "pydantic", specifier = ">=2.0" },
-    { name = "pympp", extras = ["tempo"], specifier = "==0.3" },
+    { name = "pympp", extras = ["tempo"], specifier = "==0.4.1" },
     { name = "questionary", specifier = ">=2.0" },
     { name = "rich", specifier = ">=13.0" },
     { name = "rich-click", specifier = ">=1.9.7" },
@@ -1519,14 +1519,14 @@ wheels = [
 
 [[package]]
 name = "pympp"
-version = "0.3.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f3/68/5dd504ac39be984c0a541d33e8dcf0a5a339359fc724062f0e54f2ee1506/pympp-0.3.0.tar.gz", hash = "sha256:474569986fd50e9b7ec01a3c179b9dada25b391c818862ba4b5aa90c645d607c", size = 90325, upload-time = "2026-02-23T04:24:34.555Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4b/0e/09210dfebf0cd504f88cc08377acbaae50b04e5d5eeb96e202f5cfe9d8c9/pympp-0.4.1.tar.gz", hash = "sha256:47c1057026761631d61f3e1282e8a26206e1469d4edda6f5da1f6c1034374544", size = 98115, upload-time = "2026-03-18T23:26:39.91Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/57/082ab6efdcdcd1c06043686f7768d6a96583552e81e1289d98f3fe58185e/pympp-0.3.0-py3-none-any.whl", hash = "sha256:136b2522e3e9b20d97e72101efb4e36a575cd8d26969b50140303c4517c980a0", size = 59079, upload-time = "2026-02-23T04:24:33.321Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/2c/118a63a4b8a4df1c4889112c76af648db164578875e8797506ce97c3bc47/pympp-0.4.1-py3-none-any.whl", hash = "sha256:ad7230b485484e3deba61f218a207acfbfea6e96282a9b4a80b20e370a535e7e", size = 61196, upload-time = "2026-03-18T23:26:38.928Z" },
 ]
 
 [package.optional-dependencies]
