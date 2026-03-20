@@ -20,8 +20,9 @@ def realtime(ctx: click.Context) -> None:
       prices         token prices from on-chain DEX trades
       tokens         token metadata, search, and lookup
       balances       wallet token balances (current and historical)
+      holdings       wallet token holdings (historical)
       transactions   wallet transaction activity with labels
-      pnl            wallet profit and loss calculations
+      pnl            wallet profit and loss calculations (current and historical)
     """
 
 
@@ -310,9 +311,9 @@ async def balances_latest(
 @balances.command("history")
 @chain_address_options
 @click.option(
-    "--start-timestamp", required=False, help="Start of time range (ISO 8601)."
+    "--start-timestamp", required=True, help="Start of time range (ISO 8601)."
 )
-@click.option("--end-timestamp", required=False, help="End of time range (ISO 8601).")
+@click.option("--end-timestamp", required=True, help="End of time range (ISO 8601).")
 @click.option(
     "--limit",
     default=None,
@@ -325,21 +326,19 @@ async def balances_history(
     ctx: click.Context,
     chain: tuple[str, ...],
     address: tuple[str, ...],
-    start_timestamp: str | None,
-    end_timestamp: str | None,
+    start_timestamp: str,
+    end_timestamp: str,
     limit: int | None,
     body: str | None,
 ) -> None:
-    """fetch historical token balance snapshots over a time range."""
+    """fetch historical token balance snapshots (raw) over a time range."""
     client = resolve_client(ctx)
 
     def build() -> dict[str, Any]:
         addresses = pair_chain_items(chain, address)
         payload: dict[str, Any] = {"addresses": addresses}
-        if start_timestamp:
-            payload["start_timestamp"] = start_timestamp
-        if end_timestamp:
-            payload["end_timestamp"] = end_timestamp
+        payload["start_timestamp"] = start_timestamp
+        payload["end_timestamp"] = end_timestamp
         return payload
 
     payload = load_body_or_build(body, build)
@@ -405,10 +404,65 @@ async def transactions(
     output_response(ctx, resp)
 
 
+# holdings
+
+
+@realtime.group()
+@click.pass_context
+def holdings(ctx: click.Context) -> None:
+    """wallet token holdings"""
+
+
+@holdings.command("history")
+@chain_address_options
+@click.option(
+    "--start-timestamp", required=True, help="Start of time range (ISO 8601)."
+)
+@click.option("--end-timestamp", required=True, help="End of time range (ISO 8601).")
+@click.option(
+    "--granularity",
+    required=False,
+    default="1d",
+    type=click.Choice(["15s", "1m", "5m", "1h", "1d"]),
+    help="Aggregation interval for holdings data.",
+)
+@click.pass_context
+@async_command
+async def holdings_history(
+    ctx: click.Context,
+    chain: tuple[str, ...],
+    address: tuple[str, ...],
+    start_timestamp: str,
+    end_timestamp: str,
+    granularity: str,
+    body: str | None,
+) -> None:
+    """calculate historical token holdings (USD value) over a time range."""
+    client = resolve_client(ctx)
+
+    def build() -> dict[str, Any]:
+        addresses = pair_chain_items(chain, address)
+        payload: dict[str, Any] = {"addresses": addresses}
+        payload["start_timestamp"] = start_timestamp
+        payload["end_timestamp"] = end_timestamp
+        payload["granularity"] = granularity
+        return payload
+
+    payload = load_body_or_build(body, build)
+    resp = await client.post("/api/v1/developer/wallet/holdings/history", json=payload)
+    output_response(ctx, resp)
+
+
 # pnl
 
 
-@realtime.command("pnl")
+@realtime.group()
+@click.pass_context
+def pnl(ctx: click.Context) -> None:
+    """wallet token PnL, current or historical."""
+
+
+@pnl.command("latest")
 @chain_address_options
 @click.option(
     "--with-historical-breakdown",
@@ -416,16 +470,23 @@ async def transactions(
     default=False,
     help="Include historical breakdown over time.",
 )
+@click.option(
+    "--min-liquidity",
+    default=0.0,
+    type=float,
+    help="Minimum liquidity for token pairs.",
+)
 @click.pass_context
 @async_command
-async def pnl(
+async def pnl_latest(
     ctx: click.Context,
     chain: tuple[str, ...],
     address: tuple[str, ...],
     with_historical_breakdown: bool,
+    min_liquidity: float,
     body: str | None,
 ) -> None:
-    """calculate realized and unrealized profit and loss for wallets.
+    """calculate current realized and unrealized profit and loss for wallets.
 
     optionally include a historical breakdown over time with
     --with-historical-breakdown.
@@ -437,9 +498,63 @@ async def pnl(
 
     payload = load_body_or_build(body, build)
     params: dict[str, Any] = {}
+    if min_liquidity:
+        params["min_liquidity"] = min_liquidity
     if with_historical_breakdown:
         params["with_historical_breakdown"] = "true"
     resp = await client.post(
         "/api/v1/developer/wallet/pnl", json=payload, params=params
+    )
+    output_response(ctx, resp)
+
+
+@pnl.command("history")
+@chain_address_options
+@click.option(
+    "--start-timestamp", required=True, help="Start of time range (ISO 8601)."
+)
+@click.option("--end-timestamp", required=True, help="End of time range (ISO 8601).")
+@click.option(
+    "--granularity",
+    required=False,
+    default="1d",
+    type=click.Choice(["15s", "1m", "5m", "1h", "1d"]),
+    help="Aggregation interval for PnL data.",
+)
+@click.option(
+    "--min-liquidity",
+    default=0.0,
+    type=float,
+    help="Minimum liquidity for token pairs.",
+)
+@click.pass_context
+@async_command
+async def pnl_history(
+    ctx: click.Context,
+    chain: tuple[str, ...],
+    address: tuple[str, ...],
+    start_timestamp: str,
+    end_timestamp: str,
+    min_liquidity: float,
+    granularity: str,
+    body: str | None,
+) -> None:
+    """calculate historical realized and unrealized PnL over a time range."""
+    client = resolve_client(ctx)
+
+    def build() -> dict[str, Any]:
+        addresses = pair_chain_items(chain, address)
+        payload: dict[str, Any] = {"addresses": addresses}
+        payload["start_timestamp"] = start_timestamp
+        payload["end_timestamp"] = end_timestamp
+        payload["granularity"] = granularity
+        return payload
+
+    payload = load_body_or_build(body, build)
+    params: dict[str, Any] = {}
+    if min_liquidity:
+        params["min_liquidity"] = min_liquidity
+    resp = await client.post(
+        "/api/v1/developer/wallet/pnl/history", json=payload, params=params
     )
     output_response(ctx, resp)
