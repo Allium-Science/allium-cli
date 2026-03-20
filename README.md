@@ -127,6 +127,20 @@ allium realtime balances history \
 
 **Options:** `--chain`, `--address` (repeatable, paired), `--start-timestamp`, `--end-timestamp`, `--limit`, `--body`
 
+#### Holdings
+
+```bash
+# Historical Wallet holdings
+allium realtime holdings history \
+  --chain ethereum \
+  --address 0x3c96937a5bce135c47133702d54b652498e5e375 \
+  --start-timestamp 2024-03-01T00:00:00Z \
+  --end-timestamp 2026-03-21T00:00:00Z \
+  --granularity 1d
+```
+
+**Options:** `--chain`, `--address` (repeatable), `--granularity`,  `--body`
+
 #### Transactions
 
 ```bash
@@ -140,18 +154,37 @@ allium realtime transactions \
 
 #### PnL
 
-```bash
-# Wallet profit and loss
-allium realtime pnl \
-  --chain ethereum --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+##### Latest PnL
 
-# With historical breakdown
-allium realtime pnl \
+```bash
+# Latest Wallet profit and loss
+allium realtime pnl latest \
+  --chain ethereum \
+  --address 0x3c96937a5bce135c47133702d54b652498e5e375 \
+  --min-liquidity 1000
+
+# Latest Wallet profit and loss with historical breakdown
+allium realtime pnl latest \
   --chain ethereum --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 \
   --with-historical-breakdown
 ```
 
-**Options:** `--chain`, `--address` (repeatable), `--with-historical-breakdown`, `--body`
+**Options:** `--chain`, `--address` (repeatable), `--min-liquidity`, `--with-historical-breakdown`,  `--body`
+
+##### Historical PnL
+
+```bash
+# Historical Wallet profit and loss
+allium realtime pnl history \
+  --chain ethereum \
+  --address 0x3c96937a5bce135c47133702d54b652498e5e375 \
+  --start-timestamp 2024-03-01T00:00:00Z \
+  --end-timestamp 2026-03-21T00:00:00Z \
+  --min-liquidity 1000 \
+  --granularity 1d
+```
+
+**Options:** `--chain`, `--address` (repeatable), `--granularity`, `--min-liquidity`, `--body`
 
 ---
 
