@@ -8,6 +8,12 @@ from cli.utils.async_cmd import async_command
 from cli.utils.body import load_body_or_build, pair_chain_items
 from cli.utils.errors import output_response, resolve_client
 from cli.utils.options import chain_address_options, chain_token_options
+from cli.utils.time import (
+    RANGE_END_TIMESTAMP_HELP,
+    RANGE_START_TIMESTAMP_HELP,
+    default_range_end_timestamp_utc,
+    default_range_start_timestamp_utc,
+)
 
 
 @click.group()
@@ -110,12 +116,18 @@ async def prices_at_timestamp(
 @prices.command("history")
 @chain_token_options
 @click.option(
-    "--start-timestamp", required=False, help="Start of time range (ISO 8601)."
+    "--start-timestamp",
+    default=default_range_start_timestamp_utc,
+    help=RANGE_START_TIMESTAMP_HELP,
 )
-@click.option("--end-timestamp", required=False, help="End of time range (ISO 8601).")
+@click.option(
+    "--end-timestamp",
+    default=default_range_end_timestamp_utc,
+    help=RANGE_END_TIMESTAMP_HELP,
+)
 @click.option(
     "--time-granularity",
-    required=False,
+    default="1d",
     type=click.Choice(["15s", "1m", "5m", "1h", "1d"]),
     help="Aggregation interval for price data.",
 )
@@ -125,9 +137,9 @@ async def prices_history(
     ctx: click.Context,
     chain: tuple[str, ...],
     token_address: tuple[str, ...],
-    start_timestamp: str | None,
-    end_timestamp: str | None,
-    time_granularity: str | None,
+    start_timestamp: str,
+    end_timestamp: str,
+    time_granularity: str,
     body: str | None,
 ) -> None:
     """fetch historical price series for tokens over a time range.
@@ -138,13 +150,12 @@ async def prices_history(
 
     def build() -> dict[str, Any]:
         addresses = pair_chain_items(chain, token_address, address_key="token_address")
-        payload: dict[str, Any] = {"addresses": addresses}
-        if start_timestamp:
-            payload["start_timestamp"] = start_timestamp
-        if end_timestamp:
-            payload["end_timestamp"] = end_timestamp
-        if time_granularity:
-            payload["time_granularity"] = time_granularity
+        payload: dict[str, Any] = {
+            "addresses": addresses,
+            "start_timestamp": start_timestamp,
+            "end_timestamp": end_timestamp,
+            "time_granularity": time_granularity,
+        }
         return payload
 
     payload = load_body_or_build(body, build)
@@ -311,9 +322,15 @@ async def balances_latest(
 @balances.command("history")
 @chain_address_options
 @click.option(
-    "--start-timestamp", required=True, help="Start of time range (ISO 8601)."
+    "--start-timestamp",
+    default=default_range_start_timestamp_utc,
+    help=RANGE_START_TIMESTAMP_HELP,
 )
-@click.option("--end-timestamp", required=True, help="End of time range (ISO 8601).")
+@click.option(
+    "--end-timestamp",
+    default=default_range_end_timestamp_utc,
+    help=RANGE_END_TIMESTAMP_HELP,
+)
 @click.option(
     "--limit",
     default=None,
@@ -416,9 +433,15 @@ def holdings(ctx: click.Context) -> None:
 @holdings.command("history")
 @chain_address_options
 @click.option(
-    "--start-timestamp", required=True, help="Start of time range (ISO 8601)."
+    "--start-timestamp",
+    default=default_range_start_timestamp_utc,
+    help=RANGE_START_TIMESTAMP_HELP,
 )
-@click.option("--end-timestamp", required=True, help="End of time range (ISO 8601).")
+@click.option(
+    "--end-timestamp",
+    default=default_range_end_timestamp_utc,
+    help=RANGE_END_TIMESTAMP_HELP,
+)
 @click.option(
     "--granularity",
     required=False,
@@ -511,9 +534,15 @@ async def pnl_latest(
 @pnl.command("history")
 @chain_address_options
 @click.option(
-    "--start-timestamp", required=True, help="Start of time range (ISO 8601)."
+    "--start-timestamp",
+    default=default_range_start_timestamp_utc,
+    help=RANGE_START_TIMESTAMP_HELP,
 )
-@click.option("--end-timestamp", required=True, help="End of time range (ISO 8601).")
+@click.option(
+    "--end-timestamp",
+    default=default_range_end_timestamp_utc,
+    help=RANGE_END_TIMESTAMP_HELP,
+)
 @click.option(
     "--granularity",
     required=False,
