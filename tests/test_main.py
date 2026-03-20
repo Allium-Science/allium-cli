@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from cli.main import _hoist_global_options
+from click.testing import CliRunner
+
+from cli.main import _hoist_global_options, cli
 
 
 class TestHoistGlobalOptions:
@@ -46,3 +48,18 @@ class TestHoistGlobalOptions:
         args = ["auth", "list", "--verbose"]
         result = _hoist_global_options(args)
         assert result[0] == "--verbose"
+
+
+class TestVersionFlag:
+    def test_version_flag_outputs_version(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["--version"])
+        assert result.exit_code == 0
+        assert "allium" in result.output.lower()
+
+    def test_version_flag_contains_version_number(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["--version"])
+        assert result.exit_code == 0
+        # Version output should contain a semver-like pattern
+        assert "." in result.output
