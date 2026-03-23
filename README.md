@@ -89,6 +89,12 @@ allium realtime prices history \
   --start-timestamp 2026-01-01T00:00:00Z --end-timestamp 2026-01-07T00:00:00Z \
   --time-granularity 1d
 
+# Historical price series with cursor
+allium realtime prices history \
+  --chain solana --token-address So11111111111111111111111111111111111111112 \
+  --start-timestamp 2024-08-17T13:00:00Z --end-timestamp 2025-08-17T20:00:00Z \
+  --time-granularity 5m --cursor eyJzb2xhbmEiOiAiZXlKc1lYTjBYM1JwYldWemRHRnRjQ0k2SUNJeU1ESTBMVEV5TFRJeUlEQTJPalF3T2pBd0luMD0ifQ==
+
 # 24h/1h price stats (high, low, volume, trade count, percent change)
 allium realtime prices stats \
   --chain solana --token-address So11111111111111111111111111111111111111112

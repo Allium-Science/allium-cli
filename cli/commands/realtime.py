@@ -131,6 +131,11 @@ async def prices_at_timestamp(
     type=click.Choice(["15s", "1m", "5m", "1h", "1d"]),
     help="Aggregation interval for price data.",
 )
+@click.option(
+    "--cursor",
+    default=None,
+    help="Cursor for pagination.",
+)
 @click.pass_context
 @async_command
 async def prices_history(
@@ -140,6 +145,7 @@ async def prices_history(
     start_timestamp: str,
     end_timestamp: str,
     time_granularity: str,
+    cursor: str | None,
     body: str | None,
 ) -> None:
     """fetch historical price series for tokens over a time range.
@@ -159,7 +165,12 @@ async def prices_history(
         return payload
 
     payload = load_body_or_build(body, build)
-    resp = await client.post("/api/v1/developer/prices/history", json=payload)
+    params: dict[str, Any] = {}
+    if cursor is not None:
+        params["cursor"] = cursor
+    resp = await client.post(
+        "/api/v1/developer/prices/history", json=payload, params=params
+    )
     output_response(ctx, resp)
 
 
@@ -337,6 +348,11 @@ async def balances_latest(
     type=click.IntRange(1, 5000),
     help="Max results (up to 5000).",
 )
+@click.option(
+    "--cursor",
+    default=None,
+    help="Cursor for pagination.",
+)
 @click.pass_context
 @async_command
 async def balances_history(
@@ -346,6 +362,7 @@ async def balances_history(
     start_timestamp: str,
     end_timestamp: str,
     limit: int | None,
+    cursor: str | None,
     body: str | None,
 ) -> None:
     """fetch historical token balance snapshots (raw) over a time range."""
@@ -362,6 +379,8 @@ async def balances_history(
     params: dict[str, Any] = {}
     if limit is not None:
         params["limit"] = limit
+    if cursor is not None:
+        params["cursor"] = cursor
     resp = await client.post(
         "/api/v1/developer/wallet/balances/history", json=payload, params=params
     )
@@ -387,6 +406,11 @@ async def balances_history(
     type=click.IntRange(1, 1000),
     help="Max results (up to 1000).",
 )
+@click.option(
+    "--cursor",
+    default=None,
+    help="Cursor for pagination.",
+)
 @click.pass_context
 @async_command
 async def transactions(
@@ -396,6 +420,7 @@ async def transactions(
     activity_type: str | None,
     lookback_days: int | None,
     limit: int | None,
+    cursor: str | None,
     body: str | None,
 ) -> None:
     """fetch transaction activity for wallets.
@@ -415,6 +440,8 @@ async def transactions(
         params["lookback_days"] = lookback_days
     if limit is not None:
         params["limit"] = limit
+    if cursor is not None:
+        params["cursor"] = cursor
     resp = await client.post(
         "/api/v1/developer/wallet/transactions", json=payload, params=params
     )
