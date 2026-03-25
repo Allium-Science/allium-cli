@@ -42,3 +42,12 @@ def chain_address_options(f: Callable[..., Any]) -> Callable[..., Any]:
     for decorator in reversed([_CHAIN_OPT, _WALLET_ADDRESS_OPT, _BODY_OPT]):
         f = decorator(f)
     return f
+
+
+def chain_address_token_options(f: Callable[..., Any]) -> Callable[..., Any]:
+    """bundle --chain, --address, --token-address, --body options."""
+    for decorator in reversed(
+        [_CHAIN_OPT, _WALLET_ADDRESS_OPT, _TOKEN_ADDRESS_OPT, _BODY_OPT]
+    ):
+        f = decorator(f)
+    return f

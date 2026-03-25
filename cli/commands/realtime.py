@@ -5,9 +5,17 @@ from typing import Any
 import rich_click as click
 
 from cli.utils.async_cmd import async_command
-from cli.utils.body import load_body_or_build, pair_chain_items
+from cli.utils.body import (
+    load_body_or_build,
+    pair_chain_items,
+    pair_chain_items_with_token,
+)
 from cli.utils.errors import output_response, resolve_client
-from cli.utils.options import chain_address_options, chain_token_options
+from cli.utils.options import (
+    chain_address_options,
+    chain_address_token_options,
+    chain_token_options,
+)
 from cli.utils.time import (
     RANGE_END_TIMESTAMP_HELP,
     RANGE_START_TIMESTAMP_HELP,
@@ -29,6 +37,7 @@ def realtime(ctx: click.Context) -> None:
       holdings       wallet token holdings (historical)
       transactions   wallet transaction activity with labels
       pnl            wallet profit and loss calculations (current and historical)
+      pnl-by-token   wallet token PnL by token address (current and historical)
     """
 
 
@@ -476,6 +485,12 @@ def holdings(ctx: click.Context) -> None:
     type=click.Choice(["15s", "1m", "5m", "1h", "1d"]),
     help="Aggregation interval for holdings data.",
 )
+@click.option(
+    "--min-liquidity",
+    default=0.0,
+    type=float,
+    help="Minimum liquidity for token pairs.",
+)
 @click.pass_context
 @async_command
 async def holdings_history(
@@ -485,6 +500,7 @@ async def holdings_history(
     start_timestamp: str,
     end_timestamp: str,
     granularity: str,
+    min_liquidity: float,
     body: str | None,
 ) -> None:
     """calculate historical token holdings (USD value) over a time range."""
@@ -499,7 +515,12 @@ async def holdings_history(
         return payload
 
     payload = load_body_or_build(body, build)
-    resp = await client.post("/api/v1/developer/wallet/holdings/history", json=payload)
+    params: dict[str, Any] = {}
+    if min_liquidity:
+        params["min_liquidity"] = min_liquidity
+    resp = await client.post(
+        "/api/v1/developer/wallet/holdings/history", json=payload, params=params
+    )
     output_response(ctx, resp)
 
 
@@ -515,12 +536,6 @@ def pnl(ctx: click.Context) -> None:
 @pnl.command("latest")
 @chain_address_options
 @click.option(
-    "--with-historical-breakdown",
-    is_flag=True,
-    default=False,
-    help="Include historical breakdown over time.",
-)
-@click.option(
     "--min-liquidity",
     default=0.0,
     type=float,
@@ -532,7 +547,6 @@ async def pnl_latest(
     ctx: click.Context,
     chain: tuple[str, ...],
     address: tuple[str, ...],
-    with_historical_breakdown: bool,
     min_liquidity: float,
     body: str | None,
 ) -> None:
@@ -550,8 +564,6 @@ async def pnl_latest(
     params: dict[str, Any] = {}
     if min_liquidity:
         params["min_liquidity"] = min_liquidity
-    if with_historical_breakdown:
-        params["with_historical_breakdown"] = "true"
     resp = await client.post(
         "/api/v1/developer/wallet/pnl", json=payload, params=params
     )
@@ -612,5 +624,89 @@ async def pnl_history(
         params["min_liquidity"] = min_liquidity
     resp = await client.post(
         "/api/v1/developer/wallet/pnl/history", json=payload, params=params
+    )
+    output_response(ctx, resp)
+
+
+@realtime.group()
+@click.pass_context
+def pnl_by_token(ctx: click.Context) -> None:
+    """wallet token PnL by token address, current or historical."""
+
+
+@pnl_by_token.command("latest")
+@chain_address_token_options
+@click.pass_context
+@async_command
+async def pnl_by_token_latest(
+    ctx: click.Context,
+    chain: tuple[str, ...],
+    address: tuple[str, ...],
+    token_address: tuple[str, ...],
+    body: str | None,
+) -> None:
+    """calculate current realized and unrealized profit and loss
+    for a specific token."""
+    client = resolve_client(ctx)
+
+    def build() -> list[dict[str, str]]:
+        return pair_chain_items_with_token(chain, address, token_address)
+
+    payload = load_body_or_build(body, build)
+    params: dict[str, Any] = {}
+
+    resp = await client.post(
+        "/api/v1/developer/wallet/pnl-by-token", json=payload, params=params
+    )
+    output_response(ctx, resp)
+
+
+@pnl_by_token.command("history")
+@chain_address_token_options
+@click.option(
+    "--start-timestamp",
+    default=default_range_start_timestamp_utc,
+    help=RANGE_START_TIMESTAMP_HELP,
+)
+@click.option(
+    "--end-timestamp",
+    default=default_range_end_timestamp_utc,
+    help=RANGE_END_TIMESTAMP_HELP,
+)
+@click.option(
+    "--granularity",
+    required=False,
+    default="1d",
+    type=click.Choice(["15s", "1m", "5m", "1h", "1d"]),
+    help="Aggregation interval for PnL data.",
+)
+@click.pass_context
+@async_command
+async def pnl_by_token_history(
+    ctx: click.Context,
+    chain: tuple[str, ...],
+    address: tuple[str, ...],
+    token_address: tuple[str, ...],
+    start_timestamp: str,
+    end_timestamp: str,
+    granularity: str,
+    body: str | None,
+) -> None:
+    """calculate historical realized and unrealized PnL for a specific token."""
+    client = resolve_client(ctx)
+
+    def build() -> dict[str, Any]:
+        addresses = pair_chain_items_with_token(chain, address, token_address)
+        payload: dict[str, Any] = {
+            "addresses": addresses,
+            "start_timestamp": start_timestamp,
+            "end_timestamp": end_timestamp,
+            "granularity": granularity,
+        }
+        return payload
+
+    payload = load_body_or_build(body, build)
+    resp = await client.post(
+        "/api/v1/developer/wallet/pnl-by-token/history", json=payload
     )
     output_response(ctx, resp)
