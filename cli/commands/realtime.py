@@ -36,6 +36,7 @@ def realtime(ctx: click.Context) -> None:
       balances       wallet token balances (current and historical)
       holdings       wallet token holdings (historical)
       transactions   wallet transaction activity with labels
+      positions      wallet token positions
       pnl            wallet profit and loss calculations (current and historical)
       pnl-by-token   wallet token PnL by token address (current and historical)
       supported-chains  list chains supported by the realtime APIs
@@ -722,5 +723,55 @@ async def pnl_by_token_history(
     payload = load_body_or_build(body, build)
     resp = await client.post(
         "/api/v1/developer/wallet/pnl-by-token/history", json=payload
+    )
+    output_response(ctx, resp)
+
+
+# pnl
+
+
+@realtime.group()
+@click.pass_context
+def positions(ctx: click.Context) -> None:
+    """wallet token positions."""
+
+
+@positions.command("list")
+@chain_address_options
+@click.option(
+    "--cursor",
+    default=None,
+    help="Cursor for pagination.",
+)
+@click.option(
+    "--limit",
+    default=None,
+    type=click.IntRange(1, 100),
+    help="Max results (up to 100).",
+)
+@click.pass_context
+@async_command
+async def positions_list(
+    ctx: click.Context,
+    chain: tuple[str, ...],
+    address: tuple[str, ...],
+    cursor: str | None,
+    limit: int | None,
+    body: str | None,
+) -> None:
+    """fetch current token positions for one or more wallets."""
+    client = resolve_client(ctx)
+
+    def build() -> list[dict[str, str]]:
+        return pair_chain_items(chain, address)
+
+    payload = load_body_or_build(body, build)
+    params: dict[str, Any] = {}
+    if cursor is not None:
+        params["cursor"] = cursor
+    if limit is not None:
+        params["limit"] = limit
+    resp = await client.post(
+        "/api/v1/developer/wallet/positions", json=payload, params=params
     )
     output_response(ctx, resp)
