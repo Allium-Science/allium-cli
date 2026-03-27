@@ -26,8 +26,12 @@ click.rich_click.COMMAND_GROUPS = {
         {"name": "Configuration", "commands": ["auth", "mp"]},
     ],
     "allium realtime": [
+        {"name": "General", "commands": ["supported-chains"]},
         {"name": "Market Data", "commands": ["prices", "tokens"]},
-        {"name": "Wallet Data", "commands": ["balances", "transactions", "pnl"]},
+        {
+            "name": "Wallet Data",
+            "commands": ["balances", "holdings", "pnl", "pnl-by-token", "transactions"],
+        },
     ],
 }
 

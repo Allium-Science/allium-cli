@@ -38,7 +38,21 @@ def realtime(ctx: click.Context) -> None:
       transactions   wallet transaction activity with labels
       pnl            wallet profit and loss calculations (current and historical)
       pnl-by-token   wallet token PnL by token address (current and historical)
+      supported-chains  list chains supported by the realtime APIs
     """
+
+
+# supported chains
+
+
+@realtime.command("supported-chains")
+@click.pass_context
+@async_command
+async def supported_chains(ctx: click.Context) -> None:
+    """list chains supported by the realtime APIs."""
+    client = resolve_client(ctx)
+    resp = await client.get("/api/v1/supported-chains/realtime-apis/simple")
+    output_response(ctx, resp)
 
 
 # prices
