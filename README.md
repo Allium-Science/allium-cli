@@ -168,14 +168,18 @@ allium realtime pnl latest \
   --chain ethereum \
   --address 0x3c96937a5bce135c47133702d54b652498e5e375 \
   --min-liquidity 1000
-
-# Latest Wallet profit and loss with historical breakdown
-allium realtime pnl latest \
-  --chain ethereum --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 \
-  --with-historical-breakdown
 ```
 
 **Options:** `--chain`, `--address` (repeatable), `--min-liquidity`, `--with-historical-breakdown`,  `--body`
+
+
+```bash
+# Latest Wallet profit and loss by token
+allium realtime pnl-by-token latest \
+  --chain ethereum \
+  --address 0x3c96937a5bce135c47133702d54b652498e5e375 \
+  --token-address 0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e
+```
 
 ##### Historical PnL
 
@@ -191,6 +195,20 @@ allium realtime pnl history \
 ```
 
 **Options:** `--chain`, `--address` (repeatable), `--granularity`, `--min-liquidity`, `--body`
+
+
+```bash
+# Historical Wallet profit and loss by token
+allium realtime pnl-by-token history \
+  --chain ethereum \
+  --address 0x3c96937a5bce135c47133702d54b652498e5e375 \
+  --token-address 0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e \
+  --start-timestamp 2024-04-01T00:00:00Z \
+  --end-timestamp 2024-04-10T00:00:00Z \
+  --granularity 1d
+```
+
+**Options:** `--chain`, `--address`, `token_address` (repeatable), `--granularity`, `--body`
 
 ---
 
