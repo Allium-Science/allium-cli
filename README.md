@@ -158,6 +158,14 @@ allium realtime transactions \
 
 **Options:** `--chain`, `--address` (repeatable), `--activity-type`, `--lookback-days`, `--limit`, `--body`
 
+#### Positions
+
+```bash
+allium realtime positions list \
+  --chain solana --address 125Z6k4ZAxsgdG7JxrKZpwbcS1rxqpAeqM9GSCKd66Wp \
+  --limit 1
+```
+
 #### PnL
 
 ##### Latest PnL

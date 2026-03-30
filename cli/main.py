@@ -30,7 +30,14 @@ click.rich_click.COMMAND_GROUPS = {
         {"name": "Market Data", "commands": ["prices", "tokens"]},
         {
             "name": "Wallet Data",
-            "commands": ["balances", "holdings", "pnl", "pnl-by-token", "transactions"],
+            "commands": [
+                "balances",
+                "holdings",
+                "pnl",
+                "pnl-by-token",
+                "positions",
+                "transactions",
+            ],
         },
     ],
 }
