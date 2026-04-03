@@ -75,6 +75,11 @@ _HELP = (
 
 
 @click.group(help=_HELP)
+@click.version_option(
+    version=None,
+    package_name="allium-cli",
+    prog_name="allium",
+)
 @click.option(
     "--profile",
     default=None,
