@@ -169,6 +169,8 @@ def explorer(ctx: click.Context) -> None:
       run       execute a saved query by ID
       status    check a query run's status
       results   fetch results of a completed run
+      schemas   browse and search Allium's table schemas
+      docs      browse and search Allium's documentation
     """
 
 
@@ -302,3 +304,98 @@ async def results(ctx: click.Context, run_id: str) -> None:
     """
     client = resolve_client(ctx)
     await _fetch_and_display_results(ctx, client, run_id)
+
+
+# schemas
+
+
+@explorer.group()
+@click.pass_context
+def schemas(ctx: click.Context) -> None:
+    """browse and search Allium's table schemas (catalogs, schemas, tables)."""
+
+
+@schemas.command("browse")
+@click.argument("path", required=False, default="")
+@click.pass_context
+@async_command
+async def schemas_browse(ctx: click.Context, path: str) -> None:
+    """browse Allium's data schema hierarchy like a filesystem.
+
+    \b
+    run with no PATH to list every catalog you can access. drill in with
+    dot-separated paths:
+      allium explorer schemas browse                  # list catalogs
+      allium explorer schemas browse ethereum         # list schemas
+      allium explorer schemas browse ethereum.raw     # list tables
+      allium explorer schemas browse ethereum.raw.blocks  # full table details
+    """
+    client = resolve_client(ctx)
+    resp = await client.get("/api/v1/docs/schemas/browse", params={"path": path})
+    output_response(ctx, resp)
+
+
+@schemas.command("search")
+@click.argument("query")
+@click.pass_context
+@async_command
+async def schemas_search(ctx: click.Context, query: str) -> None:
+    """semantic search across Allium's table schemas.
+
+    returns a list of matching table IDs (full names, e.g. `ethereum.raw.blocks`).
+    feed any result back into `schemas browse <id>` for the full column metadata.
+    """
+    client = resolve_client(ctx)
+    resp = await client.get("/api/v1/docs/schemas/search", params={"query": query})
+    output_response(ctx, resp)
+
+
+# docs
+
+
+@explorer.group()
+@click.pass_context
+def docs(ctx: click.Context) -> None:
+    """browse and search Allium's documentation."""
+
+
+@docs.command("browse")
+@click.argument("path", required=False, default="")
+@click.pass_context
+@async_command
+async def docs_browse(ctx: click.Context, path: str) -> None:
+    """browse Allium's documentation hierarchy like a filesystem.
+
+    \b
+    run with no PATH to list root directories. drill in with paths like:
+      allium explorer docs browse                       # list root
+      allium explorer docs browse api                   # list api/ contents
+      allium explorer docs browse api/overview.mdx      # get file content
+    """
+    client = resolve_client(ctx)
+    resp = await client.get("/api/v1/docs/docs/browse", params={"path": path})
+    output_response(ctx, resp)
+
+
+@docs.command("search")
+@click.argument("query")
+@click.option(
+    "--page-size",
+    default=10,
+    type=click.IntRange(1, 50),
+    help="Number of results to return (1-50, default 10).",
+)
+@click.pass_context
+@async_command
+async def docs_search(ctx: click.Context, query: str, page_size: int) -> None:
+    """semantic search across Allium's documentation.
+
+    returns matching doc snippets with content, path, and relevance metadata.
+    pair with `docs browse <path>` to retrieve the full file for a hit.
+    """
+    client = resolve_client(ctx)
+    resp = await client.get(
+        "/api/v1/docs/docs/search",
+        params={"query": query, "page_size": page_size},
+    )
+    output_response(ctx, resp)
