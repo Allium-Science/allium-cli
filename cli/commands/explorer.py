@@ -171,13 +171,114 @@ def explorer(ctx: click.Context) -> None:
 
     \b
     available subcommands:
-      run-sql   execute ad-hoc SQL (x402/Tempo auth required)
-      run       execute a saved query by ID
-      status    check a query run's status
-      results   fetch results of a completed run
-      schemas   browse and search Allium's table schemas
-      docs      browse and search Allium's documentation
+      run-sql       execute ad-hoc SQL (x402/Tempo auth required)
+      create-query  create a saved Explorer query (api-key path)
+      run           execute a saved query by ID
+      status        check a query run's status
+      results       fetch results of a completed run
+      schemas       browse and search Allium's table schemas
+      docs          browse and search Allium's documentation
     """
+
+
+@explorer.command("create-query")
+@click.argument("sql_or_file", required=False)
+@click.option(
+    "--title",
+    default=None,
+    help=(
+        "Title for the saved query. Defaults to 'allium-cli passthrough' "
+        "when --passthrough is set, 'Created via allium-cli' otherwise."
+    ),
+)
+@click.option(
+    "--limit",
+    default=10000,
+    type=click.IntRange(1, 100000),
+    help="Default row limit for runs of this query (default: 10000).",
+)
+@click.option(
+    "--passthrough",
+    is_flag=True,
+    default=False,
+    help=(
+        "Shortcut: create a query whose SQL is `{{ sql_query }}`. "
+        'Run any SQL through it via `--param sql_query="..."`.'
+    ),
+)
+@click.pass_context
+@async_command
+async def create_query(
+    ctx: click.Context,
+    sql_or_file: str | None,
+    title: str | None,
+    limit: int,
+    passthrough: bool,
+) -> None:
+    """create a saved Explorer query.
+
+    \b
+    SQL_OR_FILE accepts an inline SQL string, a path to a .sql file, or '-'
+    to read from stdin. Required unless --passthrough is set. Use Jinja
+    `{{ name }}` placeholders for parameters.
+
+    Returns the new query_id; run it later with `allium explorer run <ID>`.
+
+    \b
+    examples:
+      # Passthrough query for ad-hoc SQL with an api-key profile:
+      allium explorer create-query --passthrough
+      # → {"query_id": "..."}
+      allium explorer run <ID> --param sql_query="SELECT ..."
+
+      # Parameterized query:
+      allium explorer create-query \\
+        --title "Recent ethereum blocks" \\
+        "SELECT block_number FROM ethereum.raw.blocks \\
+         WHERE block_timestamp > '{{ since }}' LIMIT {{ n }}"
+
+    Requires an api_key profile (x402 / Tempo cannot create saved queries).
+    """
+    profile = resolve_profile(ctx)
+    if not isinstance(profile, ApiKeyProfile):
+        raise click.UsageError(
+            "`create-query` requires an api_key profile — your active profile "
+            "is x402 / Tempo. Switch with `allium auth use <api_key_profile>`."
+        )
+
+    if passthrough:
+        sql = "{{ sql_query }}"
+        if title is None:
+            title = "allium-cli passthrough"
+    else:
+        if not sql_or_file:
+            raise click.UsageError(
+                "Pass SQL_OR_FILE (inline string, .sql file, or '-' for stdin)"
+                " — or use --passthrough to create an ad-hoc-SQL passthrough"
+                " query."
+            )
+        if sql_or_file == "-":
+            sql = sys.stdin.read().strip()
+        else:
+            path = Path(sql_or_file)
+            if path.suffix == ".sql":
+                if not path.exists():
+                    raise click.UsageError(f"File not found: {path}")
+                sql = path.read_text().strip()
+            else:
+                sql = sql_or_file
+        if not sql:
+            raise click.UsageError("SQL is empty.")
+        if title is None:
+            title = "Created via allium-cli"
+
+    client = resolve_client(ctx)
+    body: dict[str, Any] = {
+        "title": title,
+        "config": {"sql": sql, "limit": limit},
+    }
+    resp = await client.post("/api/v1/explorer/queries", json=body)
+    output_response(ctx, resp)
 
 
 @explorer.command("run-sql")
@@ -203,15 +304,10 @@ async def run_sql(
     SQL string, a path to a .sql file, or '-' to read from stdin.
 
     \b
-    using an API key? You cannot run ad-hoc SQL directly. Instead:
-      1. Create a saved query (one-time):
-         curl -X POST "https://api.allium.so/api/v1/explorer/queries" \\
-           -H "X-API-KEY: $ALLIUM_API_KEY" \\
-           -H "Content-Type: application/json" \\
-           -d '{"title": "passthrough",
-                "config": {"sql": "{{ sql_query }}", "limit": 10000}}'
-      2. Run it with your SQL as the `sql_query` parameter:
-         allium explorer run <QUERY_ID> --param sql_query="SELECT ..."
+    using an API key? You cannot run ad-hoc SQL directly. Two-step instead:
+      1. allium explorer create-query --passthrough
+         # → returns a query_id
+      2. allium explorer run <QUERY_ID> --param sql_query="SELECT ..."
     Or switch to an x402 / Tempo profile: `allium auth use <name>`.
     """
     profile = resolve_profile(ctx)
@@ -219,13 +315,9 @@ async def run_sql(
         raise click.UsageError(
             "Ad-hoc `run-sql` requires x402 or Tempo auth — "
             "your active profile is an API key.\n"
-            "API-key path: create a saved query, then run it.\n"
-            "  1. curl -X POST 'https://api.allium.so/api/v1/explorer/queries' \\\n"
-            "       -H 'X-API-KEY: $ALLIUM_API_KEY' \\\n"
-            "       -H 'Content-Type: application/json' \\\n"
-            '       -d \'{"title": "passthrough", "config":'
-            ' {"sql": "{{ sql_query }}", "limit": 10000}}\'\n'
-            "       # → returns a query_id\n"
+            "API-key path: create a passthrough saved query, then run it.\n"
+            "  1. allium explorer create-query --passthrough\n"
+            "     # → returns a query_id\n"
             "  2. allium explorer run <QUERY_ID>"
             ' --param sql_query="<your SQL>"\n'
             "Or switch profiles: `allium auth use <x402_or_tempo_profile>`."
