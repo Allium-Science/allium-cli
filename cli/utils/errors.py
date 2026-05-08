@@ -42,9 +42,8 @@ def output_response(ctx: click.Context, response: Any) -> None:
     renderer.render(data, cli_ctx.output_format)
 
 
-def resolve_client(ctx: click.Context) -> Any:
-    """get an authenticated client from the click context."""
-    from cli.clients import get_client
+def resolve_profile(ctx: click.Context) -> Any:
+    """get the active profile (or the --profile override) from the click context."""
     from cli.utils.config import config_manager
 
     cli_ctx: CliContext = ctx.obj
@@ -60,4 +59,11 @@ def resolve_client(ctx: click.Context) -> Any:
             msg = "No active profile. Run [bold]allium auth setup[/bold] first."
             console.print(f"[red]{msg}[/red]")
             sys.exit(EXIT_AUTH)
-    return get_client(profile)
+    return profile
+
+
+def resolve_client(ctx: click.Context) -> Any:
+    """get an authenticated client from the click context."""
+    from cli.clients import get_client
+
+    return get_client(resolve_profile(ctx))

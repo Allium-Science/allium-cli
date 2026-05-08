@@ -15,9 +15,15 @@ from cli.clients.protocol import ClientProtocol
 from cli.constants.config import EXIT_ERROR
 from cli.constants.ui import ACCENT
 from cli.types.context import CliContext
+from cli.types.profiles import ApiKeyProfile
 from cli.utils.async_cmd import async_command
 from cli.utils.console import err_console as console
-from cli.utils.errors import format_api_error, output_response, resolve_client
+from cli.utils.errors import (
+    format_api_error,
+    output_response,
+    resolve_client,
+    resolve_profile,
+)
 from cli.utils.output import renderer
 
 TERMINAL_STATUSES = {"success", "failed", "canceled"}
@@ -195,7 +201,35 @@ async def run_sql(
 
     requires x402 or Tempo auth (not API key). SQL_OR_FILE accepts an inline
     SQL string, a path to a .sql file, or '-' to read from stdin.
+
+    \b
+    using an API key? You cannot run ad-hoc SQL directly. Instead:
+      1. Create a saved query (one-time):
+         curl -X POST "https://api.allium.so/api/v1/explorer/queries" \\
+           -H "X-API-KEY: $ALLIUM_API_KEY" \\
+           -H "Content-Type: application/json" \\
+           -d '{"title": "passthrough",
+                "config": {"sql": "{{ sql_query }}", "limit": 10000}}'
+      2. Run it with your SQL as the `sql_query` parameter:
+         allium explorer run <QUERY_ID> --param sql_query="SELECT ..."
+    Or switch to an x402 / Tempo profile: `allium auth use <name>`.
     """
+    profile = resolve_profile(ctx)
+    if isinstance(profile, ApiKeyProfile):
+        raise click.UsageError(
+            "Ad-hoc `run-sql` requires x402 or Tempo auth — "
+            "your active profile is an API key.\n"
+            "API-key path: create a saved query, then run it.\n"
+            "  1. curl -X POST 'https://api.allium.so/api/v1/explorer/queries' \\\n"
+            "       -H 'X-API-KEY: $ALLIUM_API_KEY' \\\n"
+            "       -H 'Content-Type: application/json' \\\n"
+            '       -d \'{"title": "passthrough", "config":'
+            ' {"sql": "{{ sql_query }}", "limit": 10000}}\'\n'
+            "       # → returns a query_id\n"
+            "  2. allium explorer run <QUERY_ID>"
+            ' --param sql_query="<your SQL>"\n'
+            "Or switch profiles: `allium auth use <x402_or_tempo_profile>`."
+        )
     client = resolve_client(ctx)
 
     if sql_or_file == "-":
