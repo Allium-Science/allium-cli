@@ -258,9 +258,8 @@ async def run_query(
         k, v = p.split("=", 1)
         parameters[k] = v
 
-    body: dict[str, Any] = {}
-    if parameters:
-        body["parameters"] = parameters
+    # `parameters` is required by the server (422 when missing) even when empty.
+    body: dict[str, Any] = {"parameters": parameters}
 
     run_config: dict[str, Any] = {}
     if limit is not None:
