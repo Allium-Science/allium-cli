@@ -15,9 +15,15 @@ from cli.clients.protocol import ClientProtocol
 from cli.constants.config import EXIT_ERROR
 from cli.constants.ui import ACCENT
 from cli.types.context import CliContext
+from cli.types.profiles import ApiKeyProfile
 from cli.utils.async_cmd import async_command
 from cli.utils.console import err_console as console
-from cli.utils.errors import format_api_error, output_response, resolve_client
+from cli.utils.errors import (
+    format_api_error,
+    output_response,
+    resolve_client,
+    resolve_profile,
+)
 from cli.utils.output import renderer
 
 TERMINAL_STATUSES = {"success", "failed", "canceled"}
@@ -165,11 +171,114 @@ def explorer(ctx: click.Context) -> None:
 
     \b
     available subcommands:
-      run-sql   execute ad-hoc SQL (x402/Tempo auth required)
-      run       execute a saved query by ID
-      status    check a query run's status
-      results   fetch results of a completed run
+      run-sql       execute ad-hoc SQL (x402/Tempo auth required)
+      create-query  create a saved Explorer query (api-key path)
+      run           execute a saved query by ID
+      status        check a query run's status
+      results       fetch results of a completed run
+      schemas       browse and search Allium's table schemas
+      docs          browse and search Allium's documentation
     """
+
+
+@explorer.command("create-query")
+@click.argument("sql_or_file", required=False)
+@click.option(
+    "--title",
+    default=None,
+    help=(
+        "Title for the saved query. Defaults to 'allium-cli passthrough' "
+        "when --passthrough is set, 'Created via allium-cli' otherwise."
+    ),
+)
+@click.option(
+    "--limit",
+    default=10000,
+    type=click.IntRange(1, 100000),
+    help="Default row limit for runs of this query (default: 10000).",
+)
+@click.option(
+    "--passthrough",
+    is_flag=True,
+    default=False,
+    help=(
+        "Shortcut: create a query whose SQL is `{{ sql_query }}`. "
+        'Run any SQL through it via `--param sql_query="..."`.'
+    ),
+)
+@click.pass_context
+@async_command
+async def create_query(
+    ctx: click.Context,
+    sql_or_file: str | None,
+    title: str | None,
+    limit: int,
+    passthrough: bool,
+) -> None:
+    """create a saved Explorer query.
+
+    \b
+    SQL_OR_FILE accepts an inline SQL string, a path to a .sql file, or '-'
+    to read from stdin. Required unless --passthrough is set. Use Jinja
+    `{{ name }}` placeholders for parameters.
+
+    Returns the new query_id; run it later with `allium explorer run <ID>`.
+
+    \b
+    examples:
+      # Passthrough query for ad-hoc SQL with an api-key profile:
+      allium explorer create-query --passthrough
+      # → {"query_id": "..."}
+      allium explorer run <ID> --param sql_query="SELECT ..."
+
+      # Parameterized query:
+      allium explorer create-query \\
+        --title "Recent ethereum blocks" \\
+        "SELECT block_number FROM ethereum.raw.blocks \\
+         WHERE block_timestamp > '{{ since }}' LIMIT {{ n }}"
+
+    Requires an api_key profile (x402 / Tempo cannot create saved queries).
+    """
+    profile = resolve_profile(ctx)
+    if not isinstance(profile, ApiKeyProfile):
+        raise click.UsageError(
+            "`create-query` requires an api_key profile — your active profile "
+            "is x402 / Tempo. Switch with `allium auth use <api_key_profile>`."
+        )
+
+    if passthrough:
+        sql = "{{ sql_query }}"
+        if title is None:
+            title = "allium-cli passthrough"
+    else:
+        if not sql_or_file:
+            raise click.UsageError(
+                "Pass SQL_OR_FILE (inline string, .sql file, or '-' for stdin)"
+                " — or use --passthrough to create an ad-hoc-SQL passthrough"
+                " query."
+            )
+        if sql_or_file == "-":
+            sql = sys.stdin.read().strip()
+        else:
+            path = Path(sql_or_file)
+            if path.suffix == ".sql":
+                if not path.exists():
+                    raise click.UsageError(f"File not found: {path}")
+                sql = path.read_text().strip()
+            else:
+                sql = sql_or_file
+        if not sql:
+            raise click.UsageError("SQL is empty.")
+        if title is None:
+            title = "Created via allium-cli"
+
+    client = resolve_client(ctx)
+    body: dict[str, Any] = {
+        "title": title,
+        "config": {"sql": sql, "limit": limit},
+    }
+    resp = await client.post("/api/v1/explorer/queries", json=body)
+    output_response(ctx, resp)
 
 
 @explorer.command("run-sql")
@@ -193,7 +302,26 @@ async def run_sql(
 
     requires x402 or Tempo auth (not API key). SQL_OR_FILE accepts an inline
     SQL string, a path to a .sql file, or '-' to read from stdin.
+
+    \b
+    using an API key? You cannot run ad-hoc SQL directly. Two-step instead:
+      1. allium explorer create-query --passthrough
+         # → returns a query_id
+      2. allium explorer run <QUERY_ID> --param sql_query="SELECT ..."
+    Or switch to an x402 / Tempo profile: `allium auth use <name>`.
     """
+    profile = resolve_profile(ctx)
+    if isinstance(profile, ApiKeyProfile):
+        raise click.UsageError(
+            "Ad-hoc `run-sql` requires x402 or Tempo auth — "
+            "your active profile is an API key.\n"
+            "API-key path: create a passthrough saved query, then run it.\n"
+            "  1. allium explorer create-query --passthrough\n"
+            "     # → returns a query_id\n"
+            "  2. allium explorer run <QUERY_ID>"
+            ' --param sql_query="<your SQL>"\n'
+            "Or switch profiles: `allium auth use <x402_or_tempo_profile>`."
+        )
     client = resolve_client(ctx)
 
     if sql_or_file == "-":
@@ -256,9 +384,8 @@ async def run_query(
         k, v = p.split("=", 1)
         parameters[k] = v
 
-    body: dict[str, Any] = {}
-    if parameters:
-        body["parameters"] = parameters
+    # `parameters` is required by the server (422 when missing) even when empty.
+    body: dict[str, Any] = {"parameters": parameters}
 
     run_config: dict[str, Any] = {}
     if limit is not None:
@@ -302,3 +429,98 @@ async def results(ctx: click.Context, run_id: str) -> None:
     """
     client = resolve_client(ctx)
     await _fetch_and_display_results(ctx, client, run_id)
+
+
+# schemas
+
+
+@explorer.group()
+@click.pass_context
+def schemas(ctx: click.Context) -> None:
+    """browse and search Allium's table schemas (catalogs, schemas, tables)."""
+
+
+@schemas.command("browse")
+@click.argument("path", required=False, default="")
+@click.pass_context
+@async_command
+async def schemas_browse(ctx: click.Context, path: str) -> None:
+    """browse Allium's data schema hierarchy like a filesystem.
+
+    \b
+    run with no PATH to list every catalog you can access. drill in with
+    dot-separated paths:
+      allium explorer schemas browse                  # list catalogs
+      allium explorer schemas browse ethereum         # list schemas
+      allium explorer schemas browse ethereum.raw     # list tables
+      allium explorer schemas browse ethereum.raw.blocks  # full table details
+    """
+    client = resolve_client(ctx)
+    resp = await client.get("/api/v1/docs/schemas/browse", params={"path": path})
+    output_response(ctx, resp)
+
+
+@schemas.command("search")
+@click.argument("query")
+@click.pass_context
+@async_command
+async def schemas_search(ctx: click.Context, query: str) -> None:
+    """semantic search across Allium's table schemas.
+
+    returns a list of matching table IDs (full names, e.g. `ethereum.raw.blocks`).
+    feed any result back into `schemas browse <id>` for the full column metadata.
+    """
+    client = resolve_client(ctx)
+    resp = await client.get("/api/v1/docs/schemas/search", params={"query": query})
+    output_response(ctx, resp)
+
+
+# docs
+
+
+@explorer.group()
+@click.pass_context
+def docs(ctx: click.Context) -> None:
+    """browse and search Allium's documentation."""
+
+
+@docs.command("browse")
+@click.argument("path", required=False, default="")
+@click.pass_context
+@async_command
+async def docs_browse(ctx: click.Context, path: str) -> None:
+    """browse Allium's documentation hierarchy like a filesystem.
+
+    \b
+    run with no PATH to list root directories. drill in with paths like:
+      allium explorer docs browse                       # list root
+      allium explorer docs browse api                   # list api/ contents
+      allium explorer docs browse api/overview.mdx      # get file content
+    """
+    client = resolve_client(ctx)
+    resp = await client.get("/api/v1/docs/docs/browse", params={"path": path})
+    output_response(ctx, resp)
+
+
+@docs.command("search")
+@click.argument("query")
+@click.option(
+    "--page-size",
+    default=10,
+    type=click.IntRange(1, 50),
+    help="Number of results to return (1-50, default 10).",
+)
+@click.pass_context
+@async_command
+async def docs_search(ctx: click.Context, query: str, page_size: int) -> None:
+    """semantic search across Allium's documentation.
+
+    returns matching doc snippets with content, path, and relevance metadata.
+    pair with `docs browse <path>` to retrieve the full file for a hit.
+    """
+    client = resolve_client(ctx)
+    resp = await client.get(
+        "/api/v1/docs/docs/search",
+        params={"query": query, "page_size": page_size},
+    )
+    output_response(ctx, resp)
