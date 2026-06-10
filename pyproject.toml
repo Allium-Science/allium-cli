@@ -26,6 +26,7 @@ dependencies = [
     "privy-client~=0.5",
     "pympp[tempo]==0.4.1",
     "rich-click>=1.9.7",
+    "urllib3>=2.7.0",
 ]
 
 [project.urls]
