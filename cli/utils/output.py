@@ -43,7 +43,13 @@ class OutputRenderer:
         columns = list(rows[0].keys())
         numeric_cols = _detect_numeric_columns(rows, columns)
 
-        table = Table(box=box.ROUNDED, caption=f"Showing {len(rows)} rows")
+        is_tty = sys.stdout.isatty()
+
+        if is_tty:
+            table = Table(box=box.ROUNDED, caption=f"Showing {len(rows)} rows")
+        else:
+            table = Table(box=None, show_edge=False, pad_edge=False)
+
         for col in columns:
             justify = "right" if col in numeric_cols else "left"
             table.add_column(col, justify=justify)
@@ -52,6 +58,9 @@ class OutputRenderer:
             table.add_row(*(_format_cell(str(row.get(col, ""))) for col in columns))
 
         self._console.print(table)
+
+        if not is_tty:
+            err_console.print(f"Showing {len(rows)} rows")
 
     def _csv(self, data: Any) -> None:
         rows = _extract_rows(data)
