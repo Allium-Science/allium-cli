@@ -19,10 +19,22 @@ class TestHoistGlobalOptions:
         assert result[:2] == ["--profile", "myprofile"]
         assert "realtime" in result
 
+    def test_moves_profile_option_equals_syntax(self):
+        args = ["realtime", "prices", "latest", "--profile=myprofile"]
+        result = _hoist_global_options(args)
+        assert result[0] == "--profile=myprofile"
+        assert result[1:] == ["realtime", "prices", "latest"]
+
     def test_moves_format_option(self):
         args = ["explorer", "run-sql", "SELECT 1", "--format", "csv"]
         result = _hoist_global_options(args)
         assert result[:2] == ["--format", "csv"]
+
+    def test_moves_format_option_equals_syntax(self):
+        args = ["explorer", "run-sql", "SELECT 1", "--format=csv"]
+        result = _hoist_global_options(args)
+        assert result[0] == "--format=csv"
+        assert result[1:] == ["explorer", "run-sql", "SELECT 1"]
 
     def test_moves_multiple_globals(self):
         args = ["explorer", "run-sql", "q.sql", "-v", "--format", "table"]
