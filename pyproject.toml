@@ -55,7 +55,7 @@ constraint-dependencies = [
     "pygments>=2.20.0",
 ]
 override-dependencies = [
-    "cryptography>=48.0.1",
+    "cryptography>=50.0.0",
 ]
 
 [build-system]
