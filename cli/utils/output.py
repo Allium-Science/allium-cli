@@ -40,7 +40,7 @@ class OutputRenderer:
             self._console.print_json(json.dumps(data, default=str))
             return
 
-        columns = list(rows[0].keys())
+        columns = _union_columns(rows)
         numeric_cols = _detect_numeric_columns(rows, columns)
 
         table = Table(box=box.ROUNDED, caption=f"Showing {len(rows)} rows")
@@ -61,11 +61,28 @@ class OutputRenderer:
             )
             sys.exit(EXIT_ERROR)
 
-        columns = list(rows[0].keys())
-        writer = csv.DictWriter(sys.stdout, fieldnames=columns)
+        columns = _union_columns(rows)
+        writer = csv.DictWriter(sys.stdout, fieldnames=columns, restval="")
         writer.writeheader()
         for row in rows:
             writer.writerow({k: str(v) for k, v in row.items()})
+
+
+def _union_columns(rows: list[dict[str, Any]]) -> list[str]:
+    """column names across all rows, in first-seen order.
+
+    Taking only rows[0].keys() crashed CSV output (DictWriter raises on
+    unexpected keys) and silently dropped columns from table output when
+    later rows carried fields the first row did not.
+    """
+    columns: list[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        for key in row.keys():
+            if key not in seen:
+                seen.add(key)
+                columns.append(key)
+    return columns
 
 
 def _extract_rows(data: Any) -> list[dict[str, Any]]:
