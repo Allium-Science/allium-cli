@@ -46,6 +46,10 @@ _GLOBAL_FLAGS = {"-v", "--verbose"}
 _GLOBAL_OPTIONS = {"--profile", "--format"}
 
 
+def _is_global_option_with_value(arg: str) -> bool:
+    return any(arg.startswith(f"{opt}=") for opt in _GLOBAL_OPTIONS)
+
+
 def _hoist_global_options(args: list[str]) -> list[str]:
     """move global flags/options to the front of the arg list."""
     front: list[str] = []
@@ -58,6 +62,9 @@ def _hoist_global_options(args: list[str]) -> list[str]:
         elif args[i] in _GLOBAL_OPTIONS and i + 1 < len(args):
             front.extend([args[i], args[i + 1]])
             i += 2
+        elif _is_global_option_with_value(args[i]):
+            front.append(args[i])
+            i += 1
         else:
             rest.append(args[i])
             i += 1
