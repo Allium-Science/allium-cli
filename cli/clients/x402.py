@@ -6,6 +6,7 @@ import base64
 import json
 import secrets
 import sys
+import time
 from typing import Any, Protocol
 
 import httpx
@@ -13,6 +14,10 @@ import httpx
 from cli.clients.http import AlliumHTTPClient
 from cli.constants.config import EXIT_ERROR
 from cli.utils.console import err_console
+
+# Backdate validAfter so a small clock difference between this machine and the
+# settling node can't make a freshly signed authorization look not-yet-valid.
+VALID_AFTER_SKEW_SECONDS = 600
 
 
 class X402Signer(Protocol):
@@ -116,6 +121,15 @@ def _build_payment_header(
     chain_id = int(option["network"].split(":")[1])
     nonce = "0x" + secrets.token_hex(32)
 
+    # EIP-3009 validAfter/validBefore are absolute unix timestamps, not
+    # durations: the token contract checks `block.timestamp < validBefore`.
+    # maxTimeoutSeconds is how long the resource server will wait, so the
+    # deadline is now + that, and validAfter is backdated to absorb clock skew
+    # between us and the settling node.
+    now = int(time.time())
+    valid_after = str(max(0, now - VALID_AFTER_SKEW_SECONDS))
+    valid_before = str(now + int(option["maxTimeoutSeconds"]))
+
     typed_data = {
         "types": {
             "EIP712Domain": [
@@ -144,8 +158,8 @@ def _build_payment_header(
             "from": signer.address,
             "to": option["payTo"],
             "value": str(option["amount"]),
-            "validAfter": "0",
-            "validBefore": str(option["maxTimeoutSeconds"]),
+            "validAfter": valid_after,
+            "validBefore": valid_before,
             "nonce": nonce,
         },
     }
@@ -175,8 +189,8 @@ def _build_payment_header(
                 "from": signer.address,
                 "to": option["payTo"],
                 "value": str(option["amount"]),
-                "validAfter": "0",
-                "validBefore": str(option["maxTimeoutSeconds"]),
+                "validAfter": valid_after,
+                "validBefore": valid_before,
                 "nonce": nonce,
             },
         },
