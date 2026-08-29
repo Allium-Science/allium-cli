@@ -162,6 +162,8 @@ async def _run_async_and_poll(
 
     if status == "success":
         await _fetch_and_display_results(ctx, client, run_id)
+    else:
+        sys.exit(EXIT_ERROR)
 
 
 @click.group()
