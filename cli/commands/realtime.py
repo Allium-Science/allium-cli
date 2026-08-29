@@ -565,11 +565,7 @@ async def pnl_latest(
     min_liquidity: float,
     body: str | None,
 ) -> None:
-    """calculate current realized and unrealized profit and loss for wallets.
-
-    optionally include a historical breakdown over time with
-    --with-historical-breakdown.
-    """
+    """calculate current realized and unrealized profit and loss for wallets."""
     client = resolve_client(ctx)
 
     def build() -> list[dict[str, str]]:

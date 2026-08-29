@@ -178,7 +178,7 @@ allium realtime pnl latest \
   --min-liquidity 1000
 ```
 
-**Options:** `--chain`, `--address` (repeatable), `--min-liquidity`, `--with-historical-breakdown`,  `--body`
+**Options:** `--chain`, `--address` (repeatable), `--min-liquidity`, `--body`
 
 
 ```bash
