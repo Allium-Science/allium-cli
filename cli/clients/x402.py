@@ -6,6 +6,7 @@ import base64
 import json
 import secrets
 import sys
+import time
 from typing import Any, Protocol
 
 import httpx
@@ -114,6 +115,8 @@ def _build_payment_header(
     url: str,
 ) -> str:
     chain_id = int(option["network"].split(":")[1])
+    max_timeout_seconds = int(option["maxTimeoutSeconds"])
+    valid_before = str(int(time.time()) + max_timeout_seconds)
     nonce = "0x" + secrets.token_hex(32)
 
     typed_data = {
@@ -145,7 +148,7 @@ def _build_payment_header(
             "to": option["payTo"],
             "value": str(option["amount"]),
             "validAfter": "0",
-            "validBefore": str(option["maxTimeoutSeconds"]),
+            "validBefore": valid_before,
             "nonce": nonce,
         },
     }
@@ -176,7 +179,7 @@ def _build_payment_header(
                 "to": option["payTo"],
                 "value": str(option["amount"]),
                 "validAfter": "0",
-                "validBefore": str(option["maxTimeoutSeconds"]),
+                "validBefore": valid_before,
                 "nonce": nonce,
             },
         },
