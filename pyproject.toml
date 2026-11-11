@@ -57,6 +57,7 @@ constraint-dependencies = [
     "filelock>=4.2.1",
     "multidict>=6.9.1,<7",
     "virtualenv>=21.14.9",
+    "certifi>=2026.10.18",
 ]
 override-dependencies = [
     "cryptography>=50.0.0",
